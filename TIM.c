@@ -6,7 +6,6 @@
  * */
 void TIM2_Init(void){
 	//Initialize timer
-	
     RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
     TIM2->PSC = 7999;
 	
@@ -18,22 +17,37 @@ void TIM2_Init(void){
 	TIM2->ARR = 200;
 	
 	//duty cycle of 0.4ms
+	//Channel 1
 	TIM2->CCR1 = 4;
-
+	//Channel 2
+	TIM2->CCR2 = 50;
+	
 	//PWM mode 2
-	TIM2->CCMR1 |= 0x03 << 4;
+	//Channel 1
+	TIM2->CCMR1 |= 0x06 << 4;
+	//Channel 2
+	TIM2->CCMR1 |= 0x06 << 12;
 	
 	//enable preload
+	//Channel 1
 	TIM2->CCMR1 |= TIM_CCMR1_OC1PE;
+	//Channel 2
+	TIM2->CCMR1 |= TIM_CCMR1_OC2PE;
 	
 	//enable output
+	//Channel 1
 	TIM2->CCMR1 &= ~(TIM_CCMR1_CC1S);
+	//Channel 2
+	TIM2->CCMR1 &= ~(TIM_CCMR1_CC2S);
 
 	//enable auto-reload preload
 	TIM2->CR1 |= TIM_CR1_ARPE;
 	
 	//enable capture compare
+	//Channel 1
 	TIM2->CCER |= TIM_CCER_CC1E;
+	//Channel 2
+	TIM2->CCER |= TIM_CCER_CC2E;
 	
 	//enable counter
 	TIM2->CR1 |= TIM_CR1_CEN;
