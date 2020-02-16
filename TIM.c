@@ -54,6 +54,27 @@ void TIM2_Init(void){
   TIM2->EGR |= TIM_EGR_UG;
 }
 
+void TIM6_Init(void){
+	//1ms period
+	RCC->APB1ENR1 |= RCC_APB1ENR1_TIM6EN;
+	TIM6->PSC |= 79999;
+	
+	//disable counter
+	TIM6->CR1 &= ~(TIM_CR1_CEN);
+    TIM6->EGR |= TIM_EGR_UG;
+	
+	//generate interrupt every 100ms
+	TIM6->ARR = 100;
+	TIM6->CR1 |= TIM_CR1_ARPE;
+	
+	TIM6->DIER |= TIM_DIER_UIE;
+	
+	TIM6->CR1 |= TIM_CR1_URS;
+	
+	TIM6->CR1 |= TIM_CR1_CEN;
+	TIM6->EGR |= TIM_EGR_UG;
+}
+
 /**
  * Stops the timer for timer 2.
  * */
