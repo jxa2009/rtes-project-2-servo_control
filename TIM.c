@@ -7,20 +7,20 @@
 void TIM2_Init(void){
 	//Initialize timer
     RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
-    TIM2->PSC = 7999;
+    TIM2->PSC = 79;
 	
 	//disable counter
 	TIM2->CR1 &= ~(TIM_CR1_CEN);
     TIM2->EGR |= TIM_EGR_UG;
 	
 	//period of 20ms
-	TIM2->ARR = 200;
+	TIM2->ARR = 20000;
 	
 	//duty cycle of 0.4ms
 	//Channel 1
-	TIM2->CCR1 = 4;
+	TIM2->CCR1 = 400;
 	//Channel 2
-	TIM2->CCR2 = 50;
+	TIM2->CCR2 = 2000;
 	
 	//PWM mode 2
 	//Channel 1
@@ -54,25 +54,27 @@ void TIM2_Init(void){
   TIM2->EGR |= TIM_EGR_UG;
 }
 
-void TIM6_Init(void){
+void TIM5_Init(void){
 	//1ms period
-	RCC->APB1ENR1 |= RCC_APB1ENR1_TIM6EN;
-	TIM6->PSC |= 79999;
+	RCC->APB1ENR1 |= RCC_APB1ENR1_TIM5EN;
+	TIM5->PSC = 7999;
 	
 	//disable counter
-	TIM6->CR1 &= ~(TIM_CR1_CEN);
-    TIM6->EGR |= TIM_EGR_UG;
+	TIM5->CR1 &= ~(TIM_CR1_CEN);
+  TIM5->EGR |= TIM_EGR_UG;
 	
 	//generate interrupt every 100ms
-	TIM6->ARR = 100;
-	TIM6->CR1 |= TIM_CR1_ARPE;
+	TIM5->ARR = 10000;
+	TIM5->CR1 |= TIM_CR1_ARPE;
 	
-	TIM6->DIER |= TIM_DIER_UIE;
+	TIM5->DIER |= TIM_DIER_UIE;
 	
-	TIM6->CR1 |= TIM_CR1_URS;
+	TIM5->CR1 |= TIM_CR1_URS;
 	
-	TIM6->CR1 |= TIM_CR1_CEN;
-	TIM6->EGR |= TIM_EGR_UG;
+	TIM5->CR1 |= TIM_CR1_CEN;
+	TIM5->EGR |= TIM_EGR_UG;
+	
+	NVIC_EnableIRQ(TIM5_IRQn);
 }
 
 /**

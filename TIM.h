@@ -4,6 +4,7 @@
 #include "stm32l476xx.h"
 
 void TIM2_Init(void);
+void TIM5_Init(void);
 void TIM2_Stop(void);
 void TIM2_Start(void);
 void TIM2_Reset(void);
