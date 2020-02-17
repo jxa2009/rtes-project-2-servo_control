@@ -4,8 +4,30 @@
 #include "recipes.h"
 #include "TIM.h"
 
-//
-static int recipe_1_exec = 0;
+/**
+ * Change the index of the loop counter variable for servo 1 recipes, can be used for resetting 
+ * Inputs:
+ *      [int] index - Index for servo 1 loop counter variable to be set to
+ * Outputs:
+ *      None
+ * */
+void set_servo_1_lcv(int index)
+{
+    servo_1_lcv = index;
+}
+
+/**
+ * Change the index of the loop counter variable for servo 2 recipes, can be used for resetting 
+ * Inputs:
+ *      [int] index - Index for servo 2 loop counter variable to be set to
+ * Outputs:
+ *      None
+ * */
+void set_servo_2_lcv(int index)
+{
+    servo_2_lcv = index;
+}
+
 /**
  * Function that moves a given servo to positions 0 to 5. Any others will fail.
  * Inputs:
@@ -50,36 +72,51 @@ int move_servo_to_position( uint32_t *servo, int position)
 void recipe_parse()
 {
     // Iterator variable
-    int servo_1_lcv = 0;
+    
     int servo_1_wait_cycles = 0;
     int servo_1_start_loop = 0;
     int servo_1_additional_loops = 0;
-    int servo_2_lcv = 0;
+    
     int servo_2_wait_cycles = 0;
     int servo_2_start_loop = 0;
     int servo_2_additional_loops = 0;
+
+    unsigned char current_recipe_command = 0x00;
     while(1)
     {
+        // Variable should be controlled by UART, "P" or "p" should set this variable to 0 and "C", "B", "c" amd "b" should set to 1
         if(recipe_1_exec)
         {
             // Servo 1 State Changes
             if (servo_1_wait_cycles==0)
             {
-                switch(recipes[0][servo_1_lcv] && OPCODE)
+                current_recipe_command = recipes[0][servo_1_lcv]
+                switch(current_recipe_command && OPCODE)
                 {
 
+                    case SHIFT:
+                        if(move_servo_to_position(TIM2->CCR1, servo_1_position + (current_recipe_command & PARAMETER) ))
+                        {
+                            servo_1_position += (current_recipe_command & PARAMETER)
+                            servo_1_state = State_Moving;
+                        }
+                        break;
                     case MOV:
                         // Move servo 1 to position based on the parameter
-                        move_servo_to_position(TIM2->CCR1, recipes[0][servo_1_lcv] & PARAMETER);
+
+                        if(move_servo_to_position(TIM2->CCR1, current_recipe_command & PARAMETER))
+                        {
+                            servo_1_position = (current_recipe_command & parameter);
+                        }
                         break;
 
                     case WAIT:
                         // The switch statement will not be processed for the value of the parameter * (1/10) ms
-                        servo_1_wait_cycles = recipes[0][servo_1_lcv] & PARAMETER;
+                        servo_1_wait_cycles = current_recipe_command & PARAMETER;
                         break;
                     case LOOP:
                         servo_1_start_loop = servo_1_lcv + 1;
-                        servo_1_additional_loops = recipes[0][servo_1_lcv] & PARAMETER;
+                        servo_1_additional_loops = current_recipe_command & PARAMETER;
                         break;
                     case END_LOOP:
                         if (servo_1_additional_loops > 0)
@@ -103,27 +140,39 @@ void recipe_parse()
                 servo_1_wait_cycles--;
             }
         }
-        // Servo 2 State Changes
+        // Variable should be controlled by UART, "P" or "p" should set this variable to 0 and "C", "B", "c" amd "b" should set to 1
         if(recipe_2_exec)
         {
-            // Servo 1 State Changes
+            // Servo 2 State Changes
             if (servo_2_wait_cycles==0)
             {
-                switch(recipes[1][servo_2_lcv] && OPCODE)
+                current_recipe_command = recipes[1][servo_2_lcv]
+                switch(current_recipe_command && OPCODE)
                 {
-
+                    case SHIFT:
+                        if(move_servo_to_position(TIM2->CCR2, servo_2_position + (current_recipe_command & PARAMETER) ))
+                        {
+                            servo_2_position += (current_recipe_command & PARAMETER)
+                            servo_2_state = State_Moving;
+                        }
+                        break;
                     case MOV:
                         // Move servo 1 to position based on the parameter
-                        move_servo_to_position(TIM2->CCR2, recipes[1][servo_2_lcv] & PARAMETER);
+                        if(move_servo_to_position(TIM2->CCR2, current_recipe_command & PARAMETER))
+                        {
+                            servo_2_position = (current_recipe_command & PARAMETER)
+                            servo_2_state = State_Moving;
+                        }
+                        
                         break;
 
                     case WAIT:
                         // The switch statement will not be processed for the value of the parameter * (1/10) ms
-                        servo_2_wait_cycles = recipes[1][servo_2_lcv] & PARAMETER;
+                        servo_2_wait_cycles = current_recipe_command & PARAMETER;
                         break;
                     case LOOP:
                         servo_2_start_loop = servo_2_lcv + 1;
-                        servo_2_additional_loops = recipes[1][servo_2_lcv] & PARAMETER;
+                        servo_2_additional_loops = current_recipe_command & PARAMETER;
                         break;
                     case END_LOOP:
                         if (servo_2_additional_loops > 0)

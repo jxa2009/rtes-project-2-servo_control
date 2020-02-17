@@ -11,7 +11,8 @@
 #define WAIT        (0x40)
 #define LOOP        (0x80)
 #define END_LOOP    (0xA0)
-#define END_RECIPE   (0x00)
+#define END_RECIPE  (0x00)
+#define SHIFT       (0xE0)
 
 // Pulse width time for positions (in ms) (steps of .32ms)
 // (400 equates to 0.4 ms)
@@ -21,6 +22,20 @@
 #define POSITION_3 (1040)
 #define POSITION_4 (720)
 #define POSITION_5 (400)
+
+
+// Statically defined variables
+static int recipe_1_exec = 0;
+static int recipe_2_exec = 0;
+
+static int servo_1_position = 0;
+static int servo_2_position = 0;
+
+static int servo_1_lcv = 0;
+static int servo_2_lcv = 0;
+
+Servo_StateE servo_1_state;
+Servo_StateE servo_2_state;
 
 // Recipes are statically compiled into the program
 unsigned char recipe1[] = {};
@@ -61,6 +76,8 @@ typedef enum Events_E
     Recipe_Ended
 } EventsE;
 
+void set_servo_1_lcv(int index);
+void set_servo_2_lcv(int index);
 int move_servo_to_position( uint32_t *servo,int position);
 void recipe_parse( uint32_t *servo, unsigned char *recipe);
 #endif
