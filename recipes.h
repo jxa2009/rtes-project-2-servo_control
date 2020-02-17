@@ -1,7 +1,12 @@
 #ifndef RECIPES_H
 #define RECIPES_H
 
-// Different recipe commands
+// The bits that correspond to the opcode
+#define OPCODE    (0xE0)
+//The bits that correspond to the parameter
+#define PARAMETER (0x1F)
+
+// Different recipe commands (opcodes)
 #define MOV         (0x20)
 #define WAIT        (0x40)
 #define LOOP        (0x80)
@@ -9,13 +14,14 @@
 #define END_RECIPE   (0x00)
 
 // Pulse width time for positions (in ms) (steps of .32ms)
-// Rounded for now
-#define POSITION_0 (20)
-#define POSITION_1 (17)//(16.8)
-#define POSITION_2 (14)// (13.6)
-#define POSITION_3 (10)
-#define POSITION_4 (7)
-#define POSITION_5 (4)
+// (400 equates to 0.4 ms)
+#define POSITION_0 (2000)
+#define POSITION_1 (1680)//(16.8)
+#define POSITION_2 (1360)// (13.6)
+#define POSITION_3 (1040)
+#define POSITION_4 (720)
+#define POSITION_5 (400)
+
 // Recipes are statically compiled into the program
 unsigned char recipe1[] = {};
 unsigned char recipe2[] = {};
@@ -56,5 +62,5 @@ typedef enum Events_E
 } EventsE;
 
 int move_servo_to_position( uint32_t *servo,int position);
-
+void recipe_parse( uint32_t *servo, unsigned char *recipe);
 #endif
