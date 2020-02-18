@@ -1,6 +1,10 @@
 #ifndef RECIPES_H
 #define RECIPES_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
 // The bits that correspond to the opcode
 #define OPCODE    (0xE0)
 //The bits that correspond to the parameter
@@ -25,29 +29,33 @@
 
 
 // Statically defined variables
-static int recipe_1_exec = 0;
+
+static int servo_1_wait_cycles = 0;
+static int servo_1_start_loop = 0;
+static int servo_1_additional_loops = 0;
+		
+static int recipe_1_exec = 1;
 static int recipe_2_exec = 0;
 
 static int servo_1_position = 0;
-static int servo_2_position = 0;
+static int servo_2_position = 5;
 
 static int servo_1_lcv = 0;
 static int servo_2_lcv = 0;
 
-Servo_StateE servo_1_state;
-Servo_StateE servo_2_state;
+static int servo_1_wait_time = 0;
+static int servo_2_wait_time = 0;
 
 // Recipes are statically compiled into the program
-unsigned char recipe1[] = {};
-unsigned char recipe2[] = {};
+static unsigned char recipe1[] = {LOOP+20,MOV+1,MOV+0,END_LOOP,END_RECIPE};
+static unsigned char recipe2[] = {MOV+0,MOV+5,MOV+0,MOV+3,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,WAIT+31,WAIT+31,MOV+4,END_RECIPE};
 
 
 // Pointer to the recipes for ease of access
-unsigned char *recipes[] = {recipe1, recipe2, NULL};
+//unsigned char *recipes[] = {recipe1, recipe2};
 
-// Global State value
-// Initial State as paused
-static Servo_StateE current_servo_state = Status_Paused;
+
+
 // Enum for statuses, that will be used to glow up the LEDs
 typedef enum Status_E
 {
@@ -76,8 +84,16 @@ typedef enum Events_E
     Recipe_Ended
 } EventsE;
 
+static Servo_StateE servo_1_state = State_At_Position;
+static Servo_StateE servo_2_state = State_At_Position;
+static StatusE current_servo_state = Status_Paused;
+
+int get_servo_1_wait_time(void);
+int get_servo_2_wait_time(void);
+void set_servo_1_wait_time(int value);
+void set_servo_2_wait_time(int value);
 void set_servo_1_lcv(int index);
 void set_servo_2_lcv(int index);
-int move_servo_to_position( uint32_t *servo,int position);
+int move_servo_to_position( uint32_t *servo, int position);
 void recipe_parse( uint32_t *servo, unsigned char *recipe);
 #endif

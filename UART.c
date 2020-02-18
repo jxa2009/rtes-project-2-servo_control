@@ -125,18 +125,36 @@ void USART_Read_Str(USART_TypeDef * USARTx, uint8_t *buffer, int size){
 	int i = 0;
 	
 	char temp_char = USART_Read(USARTx);
+	while(temp_char == 127){
+		temp_char = USART_Read(USARTx);
+	}
 	uint8_t char_num = temp_char;
 	USART_Write(USARTx, &char_num, 1);
 	
 	while (temp_char != '\r' && i < size - 1){
-		buffer[i] = temp_char;
-		temp_char = USART_Read(USARTx);
-		char_num = temp_char;
-	USART_Write(USARTx, &char_num, 1);
-		i++;
+		if(temp_char == 127){
+			if (i > 0){
+				i--;
+				
+			}
+			
+			temp_char = USART_Read(USARTx);
+			char_num = temp_char;
+			USART_Write(USARTx, &char_num, 1);
+			
+		} else {
+		
+			buffer[i] = temp_char;
+			temp_char = USART_Read(USARTx);
+			char_num = temp_char;
+			USART_Write(USARTx, &char_num, 1);
+			i++;
+		}
 	}
 	buffer[i] = '\0';
 	char_num = '\n';
+	USART_Write(USARTx, &char_num, 1);
+	char_num = '\r';
 	USART_Write(USARTx, &char_num, 1);
 }
 
