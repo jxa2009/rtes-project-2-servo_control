@@ -20,7 +20,7 @@ void TIM2_Init(void){
 	//Channel 1
 	TIM2->CCR1 = 400;
 	//Channel 2
-	TIM2->CCR2 = 2000;
+	TIM2->CCR2 = 400;
 	
 	//PWM mode 2
 	//Channel 1
@@ -64,7 +64,7 @@ void TIM5_Init(void){
   TIM5->EGR |= TIM_EGR_UG;
 	
 	//generate interrupt every 100ms
-	TIM5->ARR = 10000;
+	TIM5->ARR = 1000;
 	TIM5->CR1 |= TIM_CR1_ARPE;
 	
 	TIM5->DIER |= TIM_DIER_UIE;
@@ -73,6 +73,7 @@ void TIM5_Init(void){
 	
 	TIM5->CR1 |= TIM_CR1_CEN;
 	TIM5->EGR |= TIM_EGR_UG;
+	
 	
 	NVIC_EnableIRQ(TIM5_IRQn);
 }

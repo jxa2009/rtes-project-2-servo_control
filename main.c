@@ -11,32 +11,47 @@
 #define MAX_LOOPS          (40000000)
 #define ONE_HUNDRED_MS     (200000)
 #define STRING_SIZE				 (256)
-
+#define INPUT_SIZE         (2)
 int interruptCount = 0;
 uint8_t s[STRING_SIZE];
-uint8_t input[STRING_SIZE];
-
+uint8_t input[INPUT_SIZE+1];
+int wait_time = 0;
+int new_position = 0;
+int loop_amount = 0;
 int main(void)
 {
 
 		// Board Initialization 
 		System_Clock_Init(); // Switch System Clock = 80 MHz
 		TIM2_Init();
-		TIM5_Init();
 		GPIOA_Init();
 		UART2_Init();
-	
+		init_servo(&servo_1);
+		init_servo(&servo_2);
+		servo_1.servo_ccr = (uint32_t*) &(TIM2->CCR1);
+		servo_2.servo_ccr = (uint32_t*) &(TIM2->CCR2);
+		TIM5_Init();
 		
 		while(1){
 		// Variable Initialization
 			sprintf((char*) s, ">");
 			USART_Write(USART2, s, strlen((char*)s));
 	
-			USART_Read_Str(USART2, input, STRING_SIZE);
+			USART_Read_Str(USART2, input, INPUT_SIZE+1);
 			sprintf((char*) s, "Text entered: %s\r\n", input);
 			USART_Write(USART2, s, strlen((char*)s));
+			
+			//servo_1_events = user_command_parse((char) input[0]);
+			if(!(input[0] == 'X' || input[1] == 'x' || input[0] == 'X' || input[1] == 'x'))
+			{
+				servo_1.servo_events = user_command_parse((char) input[0]);
+				event_command_parse(servo_1.servo_events, &servo_1);
+				
+				servo_2.servo_events = user_command_parse((char) input[1]);
+				event_command_parse(servo_2.servo_events, &servo_2);
+			}
 		}
-		
+
 
 }
 
@@ -45,153 +60,252 @@ void TIM5_IRQHandler(void){
 	TIM5->CNT = 0;
 	
 	interruptCount++;
-	sprintf((char*) s, "Interrupt count: %d\r\n", interruptCount);
-	
-	
-			// Iterator variable
-    
+	//sprintf((char*) s, "Interrupt count: %d\r\n", interruptCount);
 
-    
-    int servo_2_wait_cycles = 0;
-    int servo_2_start_loop = 0;
-    int servo_2_additional_loops = 0;
-
-    unsigned char current_recipe_command = 0x00;
-
-		// Variable should be controlled by UART, "P" or "p" should set this variable to 0 and "C", "B", "c" amd "b" should set to 1
-		if (servo_1_state == State_Moving && servo_1_wait_time > 0 )
+	unsigned char current_recipe_command = 0x00;
+	// Pressing c or b will change servo status to enter this condition
+	if ( servo_1.servo_status != Status_Command_Error)
+	{
+		if (servo_1.servo_status == Status_Running)
 		{
-				servo_1_wait_time--;				
-			
-		}
-		else
+			// A MOV in the recipe will set the state to moving
+			if (servo_1.servo_state == State_Moving && servo_1.servo_wait_time> 0 )
 			{
-			servo_1_state = State_At_Position;
-			if(recipe_1_exec && servo_1_state == State_At_Position)
-			{
-					// Servo 1 State Changes
-					if (servo_1_wait_cycles==0)
-					{
-							current_recipe_command = recipe1[servo_1_lcv];
-							switch(current_recipe_command & OPCODE)
-							{
-									case SHIFT:
-											if(move_servo_to_position((uint32_t*) &TIM2->CCR1, servo_1_position + (current_recipe_command & PARAMETER) ))
-											{
-													servo_1_position += (current_recipe_command & PARAMETER);
-													servo_1_state = State_Moving;
-													
-													set_servo_1_wait_time(abs((current_recipe_command & PARAMETER* 2)));
-											}
-											break;
-									case MOV:
-											// Move servo 1 to position based on the parameter
-
-											if(move_servo_to_position((uint32_t*) &TIM2->CCR1, current_recipe_command & PARAMETER))
-											{
-													int wait_time = abs( (servo_1_position - (current_recipe_command & PARAMETER)) +(servo_1_position - (current_recipe_command & PARAMETER) )) - 1;
-													
-													if (wait_time)
-													{
-													servo_1_position = (current_recipe_command & PARAMETER);
-													servo_1_state = State_Moving;
-													servo_1_wait_time = wait_time;
-													}
-													
-													//set_servo_1_wait_time(temp_wait);
-											}
-											break;
-
-									case WAIT:
-											// The switch statement will not be processed for the value of the parameter * (1/10) ms
-											servo_1_wait_cycles = current_recipe_command & PARAMETER;
-											break;
-									case LOOP:
-											servo_1_start_loop = servo_1_lcv;
-											servo_1_additional_loops = current_recipe_command & PARAMETER;
-											break;
-									case END_LOOP:
-											if (servo_1_additional_loops > 0)
-											{
-													servo_1_lcv = servo_1_start_loop;
-													servo_1_additional_loops -= 1;
-											}
-											break;
-									case END_RECIPE:
-											// Recipe will not execute any further until this variable is set to 1 again
-											recipe_1_exec = 0;
-											servo_1_state = State_Recipe_Ended;
-											break;
-
-									default:
-											break;
-							}
-							servo_1_lcv++;
-					}
-					else
-					{
-							servo_1_wait_cycles--;
-					}
+				servo_1.servo_wait_time--;
 			}
-		}
-		// Variable should be controlled by UART, "P" or "p" should set this variable to 0 and "C", "B", "c" amd "b" should set to 1
-		/*
-		if(recipe_2_exec && servo_2_state == State_At_Position)
-		{
-				// Servo 2 State Changes
-				if (servo_2_wait_cycles==0)
+			else
+			{
+				// It should only enter this condition if the servo is stopped at a positoin
+				servo_1.servo_state = State_At_Position;
+				// This function will never be entered if its hit recipe_end. Must be stopped at a position
+				if(servo_1.recipe_exec && servo_1.servo_state== State_At_Position)
 				{
-						current_recipe_command = recipes[1][servo_2_lcv];
+					// Servo 1 State Changes
+					if (servo_1.servo_wait_cycles == 0)
+					{
+						// Grab the current recipe
+						current_recipe_command = servo_1.servo_recipe[servo_1.servo_lcv];
 						switch(current_recipe_command & OPCODE)
 						{
 								case SHIFT:
-										if(move_servo_to_position((uint32_t*) &TIM2->CCR2, servo_2_position + (current_recipe_command & PARAMETER) ))
-										{
-												servo_2_position += (current_recipe_command & PARAMETER);
-												servo_2_state = State_Moving;
-										}
-										break;
+									//Attempts to move the servo left or right 
+									new_position = (servo_1.servo_position + (current_recipe_command & PARAMETER)) % 6;
+									
+									if (move_servo_to_position( servo_1.servo_ccr, new_position))
+									{		
+										wait_time = abs( ( servo_1.servo_position - new_position) + (servo_1.servo_position - new_position) ) - 1;
+										// These values should only change if it actaully moves
+										servo_1.servo_position = new_position;
+										servo_1.servo_state = State_Moving;
+										servo_1.servo_wait_time =wait_time;
+									}
+									break;
+									
 								case MOV:
-										// Move servo 1 to position based on the parameter
-										if(move_servo_to_position((uint32_t*) &TIM2->CCR2, current_recipe_command & PARAMETER))
+									new_position = (current_recipe_command & PARAMETER);
+									
+									// Move servo 1 to position based on the parameterss
+									if( (new_position >= 0) && (new_position <= 5) && (move_servo_to_position(servo_1.servo_ccr, new_position )))
+									{
+										// Calculate how long to  wait based on how far its moving based on the current position
+										wait_time = abs( ( servo_1.servo_position - (current_recipe_command & PARAMETER)) + (servo_1.servo_position - (current_recipe_command & PARAMETER) )) -1 ;
+										if (wait_time)
 										{
-												servo_2_position = (current_recipe_command & PARAMETER);
-												servo_2_state = State_Moving;
+											// These values should only change if it actually moves
+											servo_1.servo_position = (current_recipe_command & PARAMETER);
+											servo_1.servo_state = State_Moving;
+											servo_1.servo_wait_time = wait_time;
 										}
-										
-										break;
+									}
+									else
+									{
+										servo_1.servo_status = Status_Command_Error;
+									}
+									break;
 
 								case WAIT:
-										// The switch statement will not be processed for the value of the parameter * (1/10) ms
-										servo_2_wait_cycles = current_recipe_command & PARAMETER;
-										break;
+									// The switch statement will not be processed for the value of the parameter * (1/10) ms
+									//new_position is just the amount of time to wait
+								
+									wait_time =  current_recipe_command & PARAMETER;
+									if(wait_time <= 31 && wait_time >= 0)
+									{
+										servo_1.servo_wait_cycles = wait_time;
+									}
+									else
+									{
+										servo_1.servo_status = Status_Command_Error;
+									}
+									
+									break;
+								
 								case LOOP:
-										servo_2_start_loop = servo_2_lcv + 1;
-										servo_2_additional_loops = current_recipe_command & PARAMETER;
-										break;
+									//Keep track of the start of the loop and how many times to be looping
+									loop_amount = current_recipe_command & PARAMETER;
+									if(servo_1.servo_additional_loops == 0 && loop_amount >= 0 && loop_amount <= 31)
+									{
+										servo_1.servo_start_loop = servo_1.servo_lcv;
+										servo_1.servo_additional_loops = loop_amount;
+									}
+									else
+									{
+										servo_1.servo_status = Status_Nested_Error;
+									}
+									break;
+								
 								case END_LOOP:
-										if (servo_2_additional_loops > 0)
-										{
-												servo_2_lcv = servo_1_start_loop;
-												servo_2_additional_loops -= 1;
-										}
-										break;
+									// If there still needs to be looping then move iterator back to the beginning of the loop and decrement
+									if (servo_1.servo_additional_loops >0)
+									{
+										servo_1.servo_lcv = servo_1.servo_start_loop;
+										servo_1.servo_additional_loops -= 1;
+									}
+									break;
+										
 								case END_RECIPE:
-										// Recipe will not execute any further until this variable is set to 1 again
-										recipe_2_exec = 0;
-										break;
+									// Recipe will not execute any further until this variable is set to 1 again
+									servo_1.recipe_exec = 0;
+									servo_1.servo_state = State_Recipe_Ended;
+									servo_1.servo_status = Status_Paused;
+									break;
 
 								default:
-										break;
+									break;
 						}
-						servo_2_lcv++;
+						//Increment iterator
+						servo_1.servo_lcv++;
+					}
+					else
+					{
+						// Decrement counter for if you hit a wait in the recipe
+						servo_1.servo_wait_cycles--;
+					}
 				}
-				else
-				{
-						servo_2_wait_cycles--;
-				}
+			}
 		}
-    */
+	}
+	
+		// Pressing b will change servo status to enter this condition
+	if ( servo_2.servo_status != Status_Command_Error)
+	{
+		if (servo_2.servo_status == Status_Running )
+		{
+			// A MOV in the recipe will set the state to moving
+			if (servo_2.servo_state == State_Moving && servo_2.servo_wait_time> 0 )
+			{
+				servo_2.servo_wait_time--;
+			}
+			else
+			{
+				// It should only enter this condition if the servo is stopped at a positoin
+				servo_2.servo_state = State_At_Position;
+				// This function will never be entered if its hit recipe_end. Must be stopped at a position
+				if(servo_2.recipe_exec && servo_2.servo_state== State_At_Position)
+				{
+					// Servo 1 State Changes
+					if (servo_2.servo_wait_cycles == 0)
+					{
+						// Grab the current recipe
+						current_recipe_command = servo_2.servo_recipe[servo_2.servo_lcv];
+						switch(current_recipe_command & OPCODE)
+						{
+								case SHIFT:
+									//Attempts to move the servo left or right 
+									new_position = (servo_2.servo_position + (current_recipe_command & PARAMETER)) % 6;
+									
+									if (move_servo_to_position( servo_2.servo_ccr, new_position))
+									{		
+										wait_time = abs( ( servo_2.servo_position - new_position) + (servo_2.servo_position - new_position) ) - 1;
+										// These values should only change if it actaully moves
+										servo_2.servo_position = new_position;
+										servo_2.servo_state = State_Moving;
+										servo_2.servo_wait_time =wait_time;
+									}
+									break;
+									
+								case MOV:
+									new_position = (current_recipe_command & PARAMETER);
+									
+									// Move servo 1 to position based on the parameterss
+									if( (new_position >= 0) && (new_position <= 5) && (move_servo_to_position(servo_2.servo_ccr, new_position )))
+									{
+										// Calculate how long to  wait based on how far its moving based on the current position
+										wait_time = abs( ( servo_2.servo_position - (current_recipe_command & PARAMETER)) + (servo_2.servo_position - (current_recipe_command & PARAMETER) )) -1 ;
+										if (wait_time)
+										{
+											// These values should only change if it actually moves
+											servo_2.servo_position = (current_recipe_command & PARAMETER);
+											servo_2.servo_state = State_Moving;
+											servo_2.servo_wait_time = wait_time;
+										}
+									}
+									else
+									{
+										servo_2.servo_status = Status_Command_Error;
+									}
+									break;
+
+								case WAIT:
+									// The switch statement will not be processed for the value of the parameter * (1/10) ms
+									//new_position is just the amount of time to wait
+								
+									wait_time =  current_recipe_command & PARAMETER;
+									if(wait_time <= 31 && wait_time >= 0)
+									{
+										servo_2.servo_wait_cycles = wait_time;
+									}
+									else
+									{
+										servo_2.servo_status = Status_Command_Error;
+									}
+									
+									break;
+								
+								case LOOP:
+									//Keep track of the start of the loop and how many times to be looping
+									loop_amount = current_recipe_command & PARAMETER;
+									if(servo_2.servo_additional_loops == 0 && loop_amount >= 0 && loop_amount <= 31)
+									{
+										servo_2.servo_start_loop = servo_2.servo_lcv;
+										servo_2.servo_additional_loops = loop_amount;
+									}
+									else
+									{
+										servo_2.servo_status = Status_Nested_Error;
+									}
+									break;
+								
+								case END_LOOP:
+									// If there still needs to be looping then move iterator back to the beginning of the loop and decrement
+									if (servo_2.servo_additional_loops >0)
+									{
+										servo_2.servo_lcv = servo_2.servo_start_loop;
+										servo_2.servo_additional_loops -= 1;
+									}
+									break;
+										
+								case END_RECIPE:
+									// Recipe will not execute any further until this variable is set to 1 again
+									servo_2.recipe_exec = 0;
+									servo_2.servo_state = State_Recipe_Ended;
+									servo_2.servo_status = Status_Paused;
+									break;
+
+								default:
+									break;
+						}
+						//Increment iterator
+						servo_2.servo_lcv++;
+					}
+					else
+					{
+						// Decrement counter for if you hit a wait in the recipe
+						servo_2.servo_wait_cycles--;
+					}
+				}
+			}
+		}
+	}
 		
 	//USART_Write(USART2, s, STRING_SIZE);
 }

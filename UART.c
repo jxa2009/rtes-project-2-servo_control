@@ -140,7 +140,10 @@ void USART_Read_Str(USART_TypeDef * USARTx, uint8_t *buffer, int size){
 			
 			temp_char = USART_Read(USARTx);
 			char_num = temp_char;
-			USART_Write(USARTx, &char_num, 1);
+			
+			if(i > 0 || temp_char != 127){
+				USART_Write(USARTx, &char_num, 1);
+			}
 			
 		} else {
 		

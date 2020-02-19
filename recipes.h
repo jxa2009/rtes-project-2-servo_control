@@ -20,12 +20,14 @@
 
 // Pulse width time for positions (in ms) (steps of .32ms)
 // (400 equates to 0.4 ms)
-#define POSITION_0 (2000)
-#define POSITION_1 (1680)//(16.8)
-#define POSITION_2 (1360)// (13.6)
-#define POSITION_3 (1040)
-#define POSITION_4 (720)
-#define POSITION_5 (400)
+#define POSITION_0 (550)
+#define POSITION_1 (720)
+#define POSITION_2 (1040)
+#define POSITION_3 (1360)
+#define POSITION_4 (1680)
+#define POSITION_5 (2000)
+
+
 
 
 // Statically defined variables
@@ -47,8 +49,10 @@ static int servo_1_wait_time = 0;
 static int servo_2_wait_time = 0;
 
 // Recipes are statically compiled into the program
-static unsigned char recipe1[] = {LOOP+20,MOV+1,MOV+0,END_LOOP,END_RECIPE};
-static unsigned char recipe2[] = {MOV+0,MOV+5,MOV+0,MOV+3,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,WAIT+31,WAIT+31,MOV+4,END_RECIPE};
+static unsigned char recipe1[]  = {MOV+0,MOV+5,MOV+5,MOV+7,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,MOV+4,MOV+0,END_RECIPE,MOV+4,MOV+0,END_RECIPE};
+static unsigned char recipe2[]  = {MOV+0,MOV+5,MOV+5,MOV+7,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,MOV+4,MOV+0,END_RECIPE,MOV+4,MOV+0,END_RECIPE};
+//static unsigned char recipe1[] = {LOOP+2,MOV+0,MOV+1,MOV+2,SHIFT+4,MOV+3,MOV+4,MOV+5,END_LOOP,MOV+0,END_RECIPE};
+//static unsigned char recipe2[] = {LOOP+2,MOV+0,MOV+1,MOV+2,SHIFT+4,MOV+3,MOV+4,MOV+5,END_LOOP,MOV+0,END_RECIPE};
 
 
 // Pointer to the recipes for ease of access
@@ -80,14 +84,41 @@ typedef enum Events_E
     User_Continued_Recipe,
     User_Entered_Left,
     User_Entered_Right,
+		User_Entered_No_Op,
     User_Begin_Restart_Recipe,
+		User_Entered_Invalid_Recipe,
     Recipe_Ended
 } EventsE;
 
 static Servo_StateE servo_1_state = State_At_Position;
 static Servo_StateE servo_2_state = State_At_Position;
+
 static StatusE current_servo_state = Status_Paused;
 
+static EventsE servo_1_events = User_Paused_Recipe;
+static EventsE servo_2_events = User_Paused_Recipe;
+
+
+typedef struct Servo_S
+{
+	uint32_t* servo_ccr;
+	unsigned char* servo_recipe;
+	int servo_wait_cycles;
+	int servo_start_loop;
+	int servo_additional_loops;
+	int recipe_exec;
+	int servo_position;
+	int servo_lcv;
+	int servo_wait_time;
+	StatusE servo_status;
+	Servo_StateE servo_state;
+	EventsE servo_events;
+} ServoS;
+
+static ServoS servo_1;
+static ServoS servo_2;
+
+void init_servo(ServoS* servo);
 int get_servo_1_wait_time(void);
 int get_servo_2_wait_time(void);
 void set_servo_1_wait_time(int value);
@@ -95,5 +126,7 @@ void set_servo_2_wait_time(int value);
 void set_servo_1_lcv(int index);
 void set_servo_2_lcv(int index);
 int move_servo_to_position( uint32_t *servo, int position);
+EventsE user_command_parse(char input);
+void event_command_parse(EventsE generated_event, ServoS* servo);
 void recipe_parse( uint32_t *servo, unsigned char *recipe);
 #endif
