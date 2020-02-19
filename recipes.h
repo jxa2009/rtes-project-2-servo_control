@@ -49,7 +49,7 @@ static int servo_1_wait_time = 0;
 static int servo_2_wait_time = 0;
 
 // Recipes are statically compiled into the program
-static unsigned char recipe1[]  = {MOV+0,MOV+5,MOV+5,MOV+7,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,MOV+4,MOV+0,END_RECIPE,MOV+4,MOV+0,END_RECIPE};
+static unsigned char recipe1[]  = {MOV+0,MOV+5,MOV+5,MOV+2,LOOP+0,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,MOV+4,MOV+0,END_RECIPE,MOV+4,MOV+0,END_RECIPE};
 static unsigned char recipe2[]  = {MOV+0,MOV+5,MOV+5,MOV+7,LOOP+0,MOV+1,MOV+4,END_LOOP,MOV+0,MOV+2,WAIT+0,MOV+3,WAIT+0,MOV+2,MOV+3,WAIT+31,MOV+4,MOV+0,END_RECIPE,MOV+4,MOV+0,END_RECIPE};
 //static unsigned char recipe1[] = {LOOP+2,MOV+0,MOV+1,MOV+2,SHIFT+4,MOV+3,MOV+4,MOV+5,END_LOOP,MOV+0,END_RECIPE};
 //static unsigned char recipe2[] = {LOOP+2,MOV+0,MOV+1,MOV+2,SHIFT+4,MOV+3,MOV+4,MOV+5,END_LOOP,MOV+0,END_RECIPE};
@@ -63,10 +63,10 @@ static unsigned char recipe2[]  = {MOV+0,MOV+5,MOV+5,MOV+7,LOOP+0,MOV+1,MOV+4,EN
 // Enum for statuses, that will be used to glow up the LEDs
 typedef enum Status_E
 {
-    Status_Running,
-    Status_Paused,
-    Status_Command_Error,
-    Status_Nested_Error
+    Status_Running = 1,
+    Status_Paused = 0,
+    Status_Command_Error = 2,
+    Status_Nested_Error = 3
 } StatusE;
 
 typedef enum Servo_State_E
@@ -118,7 +118,7 @@ typedef struct Servo_S
 static ServoS servo_1;
 static ServoS servo_2;
 
-void init_servo(ServoS* servo);
+void init_servo(ServoS* servo, unsigned char* recipe, uint32_t* timer);
 int get_servo_1_wait_time(void);
 int get_servo_2_wait_time(void);
 void set_servo_1_wait_time(int value);

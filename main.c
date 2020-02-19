@@ -6,6 +6,7 @@
 #include "SysClock.h"
 #include "GPIO.h"
 #include "UART.h"
+#include "LED.h"
 #include "recipes.h"
 #define ITERATIONS         (1000)
 #define MAX_LOOPS          (40000000)
@@ -26,10 +27,13 @@ int main(void)
 		TIM2_Init();
 		GPIOA_Init();
 		UART2_Init();
-		init_servo(&servo_1);
-		init_servo(&servo_2);
-		servo_1.servo_ccr = (uint32_t*) &(TIM2->CCR1);
-		servo_2.servo_ccr = (uint32_t*) &(TIM2->CCR2);
+		LED_Init();
+		init_servo(&servo_1, recipe1, (uint32_t*) &(TIM2->CCR1));
+		init_servo(&servo_2, recipe2, (uint32_t*) &(TIM2->CCR2));
+		
+		//give servos time to position themselves before initiating the master timer
+		for(int i = 0; i < 40000000; i++){
+		}
 		TIM5_Init();
 		
 		while(1){
@@ -184,6 +188,9 @@ void TIM5_IRQHandler(void){
 			}
 		}
 	}
+	
+	set_green_led(servo_1.servo_status & 0x01);
+	set_red_led(servo_1.servo_status & 0x02);
 	
 		// Pressing b will change servo status to enter this condition
 	if ( servo_2.servo_status != Status_Command_Error)

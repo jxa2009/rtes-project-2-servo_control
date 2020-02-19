@@ -180,12 +180,11 @@ void event_command_parse(EventsE generated_event, ServoS* servo)
 			break;
 	}
 }
-void init_servo(ServoS* servo)
+void init_servo(ServoS* servo, unsigned char* recipe, uint32_t* timer)
 {
 	
-	
-	
-	servo->servo_recipe = recipe1;
+	servo->servo_ccr = timer;
+	servo->servo_recipe = recipe;
 	servo->servo_wait_cycles = 0;
 	servo->servo_start_loop = 0;
 	servo->servo_additional_loops = 0;

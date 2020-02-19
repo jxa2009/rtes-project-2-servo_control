@@ -18,9 +18,9 @@ void TIM2_Init(void){
 	
 	//duty cycle of 0.4ms
 	//Channel 1
-	TIM2->CCR1 = 400;
+	TIM2->CCR1 = 550;
 	//Channel 2
-	TIM2->CCR2 = 400;
+	TIM2->CCR2 = 550;
 	
 	//PWM mode 2
 	//Channel 1
