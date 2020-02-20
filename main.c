@@ -19,6 +19,7 @@ uint8_t input[INPUT_SIZE+1];
 int wait_time = 0;
 int new_position = 0;
 int loop_amount = 0;
+unsigned char current_recipe_command = 0x00;
 int main(void)
 {
 
@@ -28,16 +29,23 @@ int main(void)
 		GPIOA_Init();
 		UART2_Init();
 		LED_Init();
+		// Initialize a given servo with a pointer to the PWM that you change
 		init_servo(&servo_1, recipe1, (uint32_t*) &(TIM2->CCR1));
 		init_servo(&servo_2, recipe2, (uint32_t*) &(TIM2->CCR2));
 		
+		sprintf((char*) s, "Getting servos into position...\r\n");
+		USART_Write(USART2, s, strlen((char*)s));
+	
 		//give servos time to position themselves before initiating the master timer
 		for(int i = 0; i < 40000000; i++){
 		}
 		TIM5_Init();
 		
+		sprintf((char*) s, "Ready\r\n");
+		USART_Write(USART2, s, strlen((char*)s));
+		
 		while(1){
-		// Variable Initialization
+			// Variable Initialization
 			sprintf((char*) s, ">");
 			USART_Write(USART2, s, strlen((char*)s));
 	
@@ -45,12 +53,13 @@ int main(void)
 			sprintf((char*) s, "Text entered: %s\r\n", input);
 			USART_Write(USART2, s, strlen((char*)s));
 			
-			//servo_1_events = user_command_parse((char) input[0]);
+			// If there is an X in a command, the command is ignored
 			if(!(input[0] == 'X' || input[1] == 'x' || input[0] == 'X' || input[1] == 'x'))
 			{
+				//Process command for servo 1
 				servo_1.servo_events = user_command_parse((char) input[0]);
 				event_command_parse(servo_1.servo_events, &servo_1);
-				
+				// Process command for servo 2
 				servo_2.servo_events = user_command_parse((char) input[1]);
 				event_command_parse(servo_2.servo_events, &servo_2);
 			}
@@ -66,7 +75,7 @@ void TIM5_IRQHandler(void){
 	interruptCount++;
 	//sprintf((char*) s, "Interrupt count: %d\r\n", interruptCount);
 
-	unsigned char current_recipe_command = 0x00;
+	current_recipe_command = 0x00;
 	// Pressing c or b will change servo status to enter this condition
 	if ( servo_1.servo_status != Status_Command_Error)
 	{
@@ -92,6 +101,8 @@ void TIM5_IRQHandler(void){
 						switch(current_recipe_command & OPCODE)
 						{
 								case SHIFT:
+									
+									
 									//Attempts to move the servo left or right 
 									new_position = (servo_1.servo_position + (current_recipe_command & PARAMETER)) % 6;
 									
@@ -112,7 +123,7 @@ void TIM5_IRQHandler(void){
 									if( (new_position >= 0) && (new_position <= 5) && (move_servo_to_position(servo_1.servo_ccr, new_position )))
 									{
 										// Calculate how long to  wait based on how far its moving based on the current position
-										wait_time = abs( ( servo_1.servo_position - (current_recipe_command & PARAMETER)) + (servo_1.servo_position - (current_recipe_command & PARAMETER) )) -1 ;
+										wait_time = abs( ( servo_1.servo_position - (current_recipe_command & PARAMETER)) + (servo_1.servo_position - (current_recipe_command & PARAMETER) ) -1) ;
 										if (wait_time)
 										{
 											// These values should only change if it actually moves
@@ -209,7 +220,7 @@ void TIM5_IRQHandler(void){
 				// This function will never be entered if its hit recipe_end. Must be stopped at a position
 				if(servo_2.recipe_exec && servo_2.servo_state== State_At_Position)
 				{
-					// Servo 1 State Changes
+					// Servo 2 State Changes
 					if (servo_2.servo_wait_cycles == 0)
 					{
 						// Grab the current recipe

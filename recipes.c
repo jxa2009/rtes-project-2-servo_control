@@ -4,52 +4,6 @@
 #include "recipes.h"
 #include "TIM.h"
 
-// Global State value
-// Initial State as paused
-
-/**
- * Change the index of the loop counter variable for servo 1 recipes, can be used for resetting 
- * Inputs:
- *      [int] index - Index for servo 1 loop counter variable to be set to
- * Outputs:
- *      None
- * */
-void set_servo_1_lcv(int index)
-{
-    servo_1_lcv = index;
-}
-
-/**
- * Change the index of the loop counter variable for servo 2 recipes, can be used for resetting 
- * Inputs:
- *      [int] index - Index for servo 2 loop counter variable to be set to
- * Outputs:
- *      None
- * */
-void set_servo_2_lcv(int index)
-{
-    servo_2_lcv = index;
-}
-
-int get_servo_1_wait_time(void)
-{
-	return servo_1_wait_time;
-}
-
-int get_servo_2_wait_time(void)
-{
-	return servo_2_wait_time;
-}
-
-void set_servo_1_wait_time(int value)
-{
-	servo_1_wait_time = value;
-}
-
-void set_servo_2_wait_time(int value)
-{
-	servo_2_wait_time = value;
-}
 /**
  * Function that moves a given servo to positions 0 to 5. Any others will fail.
  * Inputs:
@@ -90,6 +44,13 @@ int move_servo_to_position( uint32_t *servo, int position)
     }
     return 1;
 }
+/**
+* Takes in an input and returns the event that is supposed to occur based on given input
+* Inputs:
+*				[char] input - character to be parsed into an event
+* Output:
+				Returns event based on given input
+*/
 EventsE user_command_parse(char input)
 {
 	EventsE new_event_status;
@@ -127,22 +88,35 @@ EventsE user_command_parse(char input)
 	
 }
 
+/**
+* Takes in an event that was generated and changes servo states/status based on the event
+* Inputs:
+*				[EventsE] generated_event - Event that is created by user input
+*       [ServoS*] servo - Pointer to the servo that will have its read from
+* Outputs:
+*				[ServoS*] servo - Pointer to servo that will have some of its information changed based on event
+* Returns:
+				Nothing
+*/
 void event_command_parse(EventsE generated_event, ServoS* servo)
 {
 	switch(generated_event)
 	{
 		case User_Paused_Recipe:
+			//Cannot pause if recipe ended, must be running
 			if (servo->servo_state != State_Recipe_Ended && servo->servo_status == Status_Running)
 			{
 				servo->servo_status = Status_Paused;
 			}
 			break;
+		// Cannot continue if the recipe ended, must be paused
 		case User_Continued_Recipe:
 			if (servo->servo_state != State_Recipe_Ended && servo->servo_status == Status_Paused)
 			{
 				servo->servo_status = Status_Running;
 			}
 			break;
+		// Cannot turn left if servo is running 
 		case User_Entered_Left:
 	
 				if (servo->servo_status != Status_Running && move_servo_to_position(servo->servo_ccr, servo->servo_position +1))
@@ -153,8 +127,7 @@ void event_command_parse(EventsE generated_event, ServoS* servo)
 					servo->recipe_exec = 1;
 				}
 				break;
-				
-		
+		// Cannot turn right if servo is running
 		case User_Entered_Right:
 			if (servo->servo_status != Status_Running && move_servo_to_position(servo->servo_ccr, servo->servo_position -1))
 				{
@@ -164,6 +137,7 @@ void event_command_parse(EventsE generated_event, ServoS* servo)
 					servo->recipe_exec = 1;
 				}
 			break;
+		// Cannot restart if servo is currently running
 		case User_Begin_Restart_Recipe:
 			if (servo->servo_status != Status_Running)
 			{
@@ -172,7 +146,7 @@ void event_command_parse(EventsE generated_event, ServoS* servo)
 				servo->recipe_exec = 1;
 			}
 			break;
-		// If a no op is received, handle it the same as invalid
+		// If a no op is received, handle it the same as invalid, does nothing
 		case User_Entered_Invalid_Recipe:
 		case User_Entered_No_Op:
 	
@@ -180,27 +154,30 @@ void event_command_parse(EventsE generated_event, ServoS* servo)
 			break;
 	}
 }
+
+/**
+* Initializes a servo to default settings
+* Inputs:
+				[ServoS*] servo - Pointer to servo struct
+				[uint32_t*] timer - Pointer to channel for PWM in a timer
+* Returns:
+				Nothing
+* */
 void init_servo(ServoS* servo, unsigned char* recipe, uint32_t* timer)
 {
-	
 	servo->servo_ccr = timer;
 	servo->servo_recipe = recipe;
 	servo->servo_wait_cycles = 0;
 	servo->servo_start_loop = 0;
 	servo->servo_additional_loops = 0;
-	servo->recipe_exec = 1;
+	servo->recipe_exec = 0; // changed
 	servo->servo_position = 0;
 	servo->servo_lcv =  0;
 	servo->servo_wait_time = 0;
-	servo->servo_status = Status_Running;
-	servo->servo_state = State_At_Position;
+	servo->servo_status = Status_Paused;// Changed
+	servo->servo_state = State_At_Position; // Changed
 	servo->servo_events = User_Paused_Recipe;
 	
-	
-	
 }
-void recipe_parse( uint32_t *servo, unsigned char *recipe)
-{
-    
-}
+
 
